@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Copilote Rallye - Cockpit Paysage</title>
+    <title>Mon Copilote Rallye - Cockpit Paysage Pro</title>
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
@@ -415,7 +415,7 @@
                 mapRec.on('movestart', () => {
                     autoCenterRec = false;
                     clearTimeout(timerRec);
-                    timerRec = setTimeout(() => { autoCenterRec = true; }, 5000);
+                    timerRec = setTimeout(() => { autoCenterRec = true; }, 5000); // 5 secondes de pause de recentrage
                 });
             }
 
@@ -426,7 +426,7 @@
                 mapRun.on('movestart', () => {
                     autoCenterRun = false;
                     clearTimeout(timerRun);
-                    timerRun = setTimeout(() => { autoCenterRun = true; }, 5000);
+                    timerRun = setTimeout(() => { autoCenterRun = true; }, 5000); // 5 secondes de pause de recentrage
                 });
             }
 
@@ -488,6 +488,7 @@
             }
         }
 
+        // Distance le long de la trace (évite le piège des épingles)
         function getDistanceAlongTrack(userLat, userLon, targetLat, targetLon) {
             if (!trackPath || trackPath.length === 0) {
                 return getDistanceFromLatLonInMeters(userLat, userLon, targetLat, targetLon);
@@ -528,6 +529,7 @@
             return totalDist;
         }
 
+        // Distance partielle entre la note active et la suivante le long du tracé
         function getPartialDistanceBetweenNotes(lat1, lon1, lat2, lon2) {
             if (!trackPath || trackPath.length === 0) {
                 return getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2);
@@ -597,6 +599,7 @@
             const runStatusText = document.getElementById('runStatusText');
             const partialDistEl = document.getElementById('partialDistance');
 
+            // Vérification permanente de la distance au départ (<= 15m requis)
             if (trackPath.length > 0 && !isRaceStarted) {
                 let startPoint = trackPath[0];
                 let distToStart = getDistanceAlongTrack(lastUserLat, lastUserLon, startPoint[0], startPoint[1]);
@@ -640,6 +643,7 @@
                     return;
                 }
 
+                // Ordre chronologique strict : recherche la première note non jouée
                 let currentIndex = -1;
                 for (let i = 0; i < notes.length; i++) {
                     if (!notes[i].triggered) {
@@ -648,6 +652,7 @@
                     }
                 }
 
+                // Fin automatique de spéciale si toutes les notes sont passées
                 if (currentIndex === -1) {
                     if (notePrevEl) notePrevEl.innerText = notes.length > 0 ? "⬆️ " + notes[notes.length - 1].text : "-";
                     if (noteActiveEl) noteActiveEl.innerText = "🏁 FIN DE SPECIALE !";
@@ -671,7 +676,7 @@
                 let nextActiveNote = notes[currentIndex];
                 let distToActive = getDistanceAlongTrack(lastUserLat, lastUserLon, nextActiveNote.lat, nextActiveNote.lon);
                 
-                // --- DISTANCE PARTIELLE : Entre la note active (centre) et la suivante (en bas) ---
+                // Distance partielle entre la note active (centre) et la suivante (bas)
                 let partialVal = 0;
                 if (currentIndex < notes.length - 1) {
                     let followingNote = notes[currentIndex + 1];
@@ -683,14 +688,9 @@
                 if (partialDistEl) partialDistEl.innerText = Math.round(partialVal);
                 if (distanceEl) distanceEl.innerText = "Note #" + (currentIndex + 1) + " à " + Math.round(distToActive) + "m (Seuil: " + Math.round(dynamicThreshold) + "m)";
 
-                // --- CARROUSEL CORRIGÉ ---
-                // Haut : La note précédente (si elle existe)
+                // Carrousel : Haut (précédente), Centre (active à venir), Bas (suivante)
                 let prevText = (currentIndex > 0) ? "⬆️ " + notes[currentIndex - 1].text : "⬆️ [Départ]";
-                
-                // Centre : La note active (celle qu'on approche ou qu'on vient d'annoncer)
                 let activeText = `🎯 [${currentIndex + 1}/${notes.length}] ` + nextActiveNote.text;
-                
-                // Bas : La note qui suit (la suivante)
                 let nextText = (currentIndex < notes.length - 1) ? "⬇️ " + notes[currentIndex + 1].text : "⬇️ [Arrivée]";
 
                 if (notePrevEl) notePrevEl.innerText = prevText;
@@ -813,6 +813,7 @@
             }
         }
 
+        // Tracés et marqueurs distinctifs départ (vert) / arrivée (rouge)
         function redrawTracksAndMarkers() {
             let startIcon = L.divIcon({
                 className: 'custom-start-marker',
@@ -1015,6 +1016,7 @@
 
         function deg2rad(deg) { return deg * (Math.PI / 180); }
 
+        // Synthèse vocale sécurisée sans coupure abrupte
         function speak(text) {
             if ('speechSynthesis' in window) {
                 let utterance = new SpeechSynthesisUtterance(text);
