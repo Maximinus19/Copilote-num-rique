@@ -398,6 +398,7 @@
         let markersLayerRec = L.layerGroup(), markersLayerRun = L.layerGroup();
         let userMarkerRec = null, userMarkerRun = null;
         let startMarkerRec = null, startMarkerRun = null;
+        let endMarkerRec = null, endMarkerRun = null;
 
         let autoCenterRec = true, autoCenterRun = true;
         let timerRec = null, timerRun = null;
@@ -599,7 +600,7 @@
             if (trackPath.length > 0 && !isRaceStarted) {
                 let startPoint = trackPath[0];
                 let distToStart = getDistanceAlongTrack(lastUserLat, lastUserLon, startPoint[0], startPoint[1]);
-                if (partialDistEl) partialDistEl.innerText = "-";
+                if (partialDistEl) partialDistEl.innerText = Math.round(distToStart);
 
                 if (distToStart <= 15) {
                     if (btnToggle) btnToggle.disabled = false;
@@ -615,6 +616,7 @@
                     }
                 }
             } else if (trackPath.length === 0 && !isRaceStarted) {
+                if (btnToggle) btnToggle.disabled = true;
                 if (partialDistEl) partialDistEl.innerText = "-";
                 if (runStatusText) {
                     runStatusText.innerText = "Aucun tracé";
@@ -638,7 +640,6 @@
                     return;
                 }
 
-                // --- ORDRE STRICT : Trouve la PREMIÈRE note non jouée dans l'ordre d'enregistrement ---
                 let currentIndex = -1;
                 for (let i = 0; i < notes.length; i++) {
                     if (!notes[i].triggered) {
@@ -647,7 +648,6 @@
                     }
                 }
 
-                // --- SI TOUTES LES NOTES SONT JOUÉES : FIN DE SPECIALE AUTOMATIQUE ---
                 if (currentIndex === -1) {
                     if (notePrevEl) notePrevEl.innerText = notes.length > 0 ? "⬆️ " + notes[notes.length - 1].text : "-";
                     if (noteActiveEl) noteActiveEl.innerText = "🏁 FIN DE SPECIALE !";
@@ -671,7 +671,7 @@
                 let nextActiveNote = notes[currentIndex];
                 let distToActive = getDistanceAlongTrack(lastUserLat, lastUserLon, nextActiveNote.lat, nextActiveNote.lon);
                 
-                // Calcul de la distance partielle entre la note active et la suivante
+                // --- DISTANCE PARTIELLE : Entre la note active (centre) et la suivante (en bas) ---
                 let partialVal = 0;
                 if (currentIndex < notes.length - 1) {
                     let followingNote = notes[currentIndex + 1];
@@ -683,8 +683,14 @@
                 if (partialDistEl) partialDistEl.innerText = Math.round(partialVal);
                 if (distanceEl) distanceEl.innerText = "Note #" + (currentIndex + 1) + " à " + Math.round(distToActive) + "m (Seuil: " + Math.round(dynamicThreshold) + "m)";
 
+                // --- CARROUSEL CORRIGÉ ---
+                // Haut : La note précédente (si elle existe)
                 let prevText = (currentIndex > 0) ? "⬆️ " + notes[currentIndex - 1].text : "⬆️ [Départ]";
+                
+                // Centre : La note active (celle qu'on approche ou qu'on vient d'annoncer)
                 let activeText = `🎯 [${currentIndex + 1}/${notes.length}] ` + nextActiveNote.text;
+                
+                // Bas : La note qui suit (la suivante)
                 let nextText = (currentIndex < notes.length - 1) ? "⬇️ " + notes[currentIndex + 1].text : "⬇️ [Arrivée]";
 
                 if (notePrevEl) notePrevEl.innerText = prevText;
@@ -692,8 +698,7 @@
                 if (noteNextEl) noteNextEl.innerText = nextText;
 
                 let now = Date.now();
-                // Déclenchement de la note en cours de manière strictement séquentielle
-                if (distToActive <= dynamicThreshold && (now - lastSpokenTime > 3000)) {
+                if (distToActive <= dynamicThreshold && (now - lastSpokenTime > 4000)) {
                     speak(nextActiveNote.text);
                     nextActiveNote.triggered = true;
                     lastSpokenTime = now;
@@ -809,14 +814,36 @@
         }
 
         function redrawTracksAndMarkers() {
+            let startIcon = L.divIcon({
+                className: 'custom-start-marker',
+                html: '<div style="background-color: #00e676; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 8px #00e676;"></div>',
+                iconSize: [14, 14],
+                iconAnchor: [7, 7]
+            });
+
+            let endIcon = L.divIcon({
+                className: 'custom-end-marker',
+                html: '<div style="background-color: #ff2a2a; width: 16px; height: 16px; border-radius: 4px; border: 2px solid #fff; box-shadow: 0 0 10px #ff2a2a; text-align:center; color:white; font-weight:bold; font-size:10px; line-height:12px;">🏁</div>',
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+            });
+
             if (mapRec) {
                 if (polylineRec) mapRec.removeLayer(polylineRec);
                 if (trackPath.length > 0) {
                     polylineRec = L.polyline(trackPath, { color: '#00b0ff', weight: 4, opacity: 0.8 }).addTo(mapRec);
+                    
                     if (!startMarkerRec) {
-                        startMarkerRec = L.marker([trackPath[0][0], trackPath[0][1]]).addTo(mapRec).bindPopup("🏁 Départ");
+                        startMarkerRec = L.marker([trackPath[0][0], trackPath[0][1]], { icon: startIcon }).addTo(mapRec).bindPopup("🟢 Ligne de Départ");
                     } else {
                         startMarkerRec.setLatLng(trackPath[0]);
+                    }
+
+                    let lastPoint = trackPath[trackPath.length - 1];
+                    if (!endMarkerRec) {
+                        endMarkerRec = L.marker([lastPoint[0], lastPoint[1]], { icon: endIcon }).addTo(mapRec).bindPopup("🏁 Ligne d'Arrivée");
+                    } else {
+                        endMarkerRec.setLatLng(lastPoint);
                     }
                 }
                 
@@ -831,10 +858,18 @@
                 if (polylineRun) mapRun.removeLayer(polylineRun);
                 if (trackPath.length > 0) {
                     polylineRun = L.polyline(trackPath, { color: '#00e676', weight: 4, opacity: 0.8 }).addTo(mapRun);
+                    
                     if (!startMarkerRun) {
-                        startMarkerRun = L.marker([trackPath[0][0], trackPath[0][1]]).addTo(mapRun).bindPopup("🏁 Départ");
+                        startMarkerRun = L.marker([trackPath[0][0], trackPath[0][1]], { icon: startIcon }).addTo(mapRun).bindPopup("🟢 Ligne de Départ");
                     } else {
                         startMarkerRun.setLatLng(trackPath[0]);
+                    }
+
+                    let lastPoint = trackPath[trackPath.length - 1];
+                    if (!endMarkerRun) {
+                        endMarkerRun = L.marker([lastPoint[0], lastPoint[1]], { icon: endIcon }).addTo(mapRun).bindPopup("🏁 Ligne d'Arrivée");
+                    } else {
+                        endMarkerRun.setLatLng(lastPoint);
                     }
                 }
                 
@@ -854,7 +889,9 @@
                 localStorage.removeItem('rally_track');
                 
                 if (startMarkerRec) { mapRec.removeLayer(startMarkerRec); startMarkerRec = null; }
+                if (endMarkerRec) { mapRec.removeLayer(endMarkerRec); endMarkerRec = null; }
                 if (startMarkerRun) { mapRun.removeLayer(startMarkerRun); startMarkerRun = null; }
+                if (endMarkerRun) { mapRun.removeLayer(endMarkerRun); endMarkerRun = null; }
 
                 initialCenterDone = false;
                 updateNotesDisplay();
@@ -980,10 +1017,9 @@
 
         function speak(text) {
             if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
                 let utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'fr-FR';
-                utterance.rate = 1.2;
+                utterance.rate = 1.1;
                 utterance.pitch = 0.95;
 
                 if (voices.length === 0) { loadVoices(); }
