@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Copilote Rallye - Cockpit Carbone</title>
+    <title>Mon Copilote Rallye - Anticipation Route</title>
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
@@ -308,8 +308,8 @@
                     <div class="stat-value"><span id="speed">0</span> <span style="font-size:0.75rem">km/h</span></div>
                 </div>
                 <div class="stat-box">
-                    <div class="stat-label">Distance Départ</div>
-                    <div class="stat-value"><span id="distanceToStart">-</span> <span style="font-size:0.75rem">m</span></div>
+                    <div class="stat-label">Distance Route</div>
+                    <div class="stat-value"><span id="distanceToNote">-</span> <span style="font-size:0.75rem">m</span></div>
                 </div>
             </div>
 
@@ -377,7 +377,7 @@
                 mapRec.on('movestart', () => {
                     autoCenterRec = false;
                     clearTimeout(timerRec);
-                    timerRec = setTimeout(() => { autoCenterRec = true; }, 5000); // 5 secondes de pause
+                    timerRec = setTimeout(() => { autoCenterRec = true; }, 5000);
                 });
             }
 
@@ -388,7 +388,7 @@
                 mapRun.on('movestart', () => {
                     autoCenterRun = false;
                     clearTimeout(timerRun);
-                    timerRun = setTimeout(() => { autoCenterRun = true; }, 5000); // 5 secondes de pause
+                    timerRun = setTimeout(() => { autoCenterRun = true; }, 5000);
                 });
             }
 
@@ -450,6 +450,51 @@
             }
         }
 
+        // --- FONCTION MAGIQUE : Calcule la distance le long de la trace (route) et non à vol d'oiseau ---
+        function getDistanceAlongTrack(userLat, userLon, targetLat, targetLon) {
+            if (!trackPath || trackPath.length === 0) {
+                return getDistanceFromLatLonInMeters(userLat, userLon, targetLat, targetLon);
+            }
+
+            // 1. Trouver le point de la trace le plus proche de l'utilisateur
+            let closestUserIndex = 0;
+            let minUserDist = Infinity;
+            for (let i = 0; i < trackPath.length; i++) {
+                let d = getDistanceFromLatLonInMeters(userLat, userLon, trackPath[i][0], trackPath[i][1]);
+                if (d < minUserDist) {
+                    minUserDist = d;
+                    closestUserIndex = i;
+                }
+            }
+
+            // 2. Trouver le point de la trace le plus proche de la note
+            let closestNoteIndex = 0;
+            let minNoteDist = Infinity;
+            for (let i = 0; i < trackPath.length; i++) {
+                let d = getDistanceFromLatLonInMeters(targetLat, targetLon, trackPath[i][0], trackPath[i][1]);
+                if (d < minNoteDist) {
+                    minNoteDist = d;
+                    closestNoteIndex = i;
+                }
+            }
+
+            // Si la note est passée derrière nous sur la route
+            if (closestNoteIndex <= closestUserIndex) {
+                return 0; 
+            }
+
+            // 3. Sommer la distance réelle le long des segments de la trace entre l'utilisateur et la note
+            let totalDist = 0;
+            for (let i = closestUserIndex; i < closestNoteIndex; i++) {
+                totalDist += getDistanceFromLatLonInMeters(
+                    trackPath[i][0], trackPath[i][1], 
+                    trackPath[i+1][0], trackPath[i+1][1]
+                );
+            }
+
+            return totalDist;
+        }
+
         function updatePosition(position) {
             lastUserLat = position.coords.latitude;
             lastUserLon = position.coords.longitude;
@@ -494,8 +539,9 @@
             const distToStartEl = document.getElementById('distanceToStart');
 
             if (trackPath.length > 0 && !isRaceStarted) {
+                // Pour le départ, on utilise la distance route vers le premier point du tracé
                 let startPoint = trackPath[0];
-                let distToStart = getDistanceFromLatLonInMeters(lastUserLat, lastUserLon, startPoint[0], startPoint[1]);
+                let distToStart = getDistanceAlongTrack(lastUserLat, lastUserLon, startPoint[0], startPoint[1]);
                 if (distToStartEl) distToStartEl.innerText = Math.round(distToStart);
 
                 if (distToStart <= 15) {
@@ -525,6 +571,7 @@
             if (isRaceStarted) {
                 let noteActiveEl = document.getElementById('noteActive');
                 let distanceEl = document.getElementById('distance');
+                let distanceToNoteEl = document.getElementById('distanceToNote');
                 let notePrevEl = document.getElementById('notePrev');
                 let noteNextEl = document.getElementById('noteNext');
 
@@ -547,13 +594,17 @@
                     if (noteActiveEl) noteActiveEl.innerText = "🏁 PARCOURS TERMINÉ !";
                     if (noteNextEl) noteNextEl.innerText = "-";
                     if (distanceEl) distanceEl.innerText = "";
+                    if (distanceToNoteEl) distanceToNoteEl.innerText = "0";
                     return;
                 }
 
                 let nextActiveNote = notes[currentIndex];
-                let dist = getDistanceFromLatLonInMeters(lastUserLat, lastUserLon, nextActiveNote.lat, nextActiveNote.lon);
                 
-                if (distanceEl) distanceEl.innerText = "Distance prochaine note : " + Math.round(dist) + " m (Seuil : " + Math.round(dynamicThreshold) + "m)";
+                // --- ICI : On utilise la distance le long de la route/trace ---
+                let dist = getDistanceAlongTrack(lastUserLat, lastUserLon, nextActiveNote.lat, nextActiveNote.lon);
+                
+                if (distanceToNoteEl) distanceToNoteEl.innerText = Math.round(dist);
+                if (distanceEl) distanceEl.innerText = "Distance route prochaine note : " + Math.round(dist) + " m (Seuil : " + Math.round(dynamicThreshold) + "m)";
 
                 let prevText = (currentIndex > 0) ? "⬆️ " + notes[currentIndex - 1].text : "⬆️ [Départ]";
                 let activeText = "🎯 " + nextActiveNote.text;
@@ -752,7 +803,7 @@
             const runStatusText = document.getElementById('runStatusText');
 
             if (!isRaceStarted) {
-                if (notes.length === 0) {
+                if (notes.length ===0) {
                     alert("Aucune note enregistrée ! Fais d'abord ta reconnaissance.");
                     return;
                 }
@@ -857,4 +908,17 @@
                 utterance.rate = 1.2;
                 utterance.pitch = 0.95;
 
-                if (voices.length === 0) { loadVoices();
+                if (voices.length === 0) { loadVoices(); }
+                let naturalVoice = voices.find(v => v.lang.includes('fr') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Siri') || v.name.includes('Amelie')));
+                if (naturalVoice) utterance.voice = naturalVoice;
+
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        window.onload = function() {
+            initMaps();
+        };
+    </script>
+</body>
+</html>
