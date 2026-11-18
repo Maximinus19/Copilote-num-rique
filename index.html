@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Copilote Rallye - Anticipation Route</title>
+    <title>Mon Copilote Rallye - Cockpit Paysage</title>
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
@@ -11,7 +11,7 @@
     <style>
         :root {
             --bg-color: #0b0b0e;
-            --card-bg: rgba(21, 21, 26, 0.92);
+            --card-bg: rgba(21, 21, 26, 0.95);
             --card-border: #2c2c35;
             --accent-red: #ff2a2a;
             --accent-green: #00e676;
@@ -36,48 +36,49 @@
             
             color: var(--text-main);
             margin: 0;
-            padding: 12px;
+            padding: 8px;
             text-align: center;
             -webkit-user-select: none;
             user-select: none;
-            min-height: 100vh;
+            overflow: hidden; /* Zéro scroll sur l'écran */
+            height: 100vh;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 4px;
+            margin-bottom: 6px;
+            height: 30px;
         }
 
         h1 { 
-            font-size: 1.2rem; 
+            font-size: 1rem; 
             color: var(--accent-red); 
-            margin: 5px 0 12px 0; 
+            margin: 0; 
             text-transform: uppercase;
-            letter-spacing: 1.5px;
+            letter-spacing: 1px;
             font-weight: 800;
-            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
-        }
-
-        .unified-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
-            border: 1px solid var(--card-border);
-            border-radius: 16px;
-            padding: 16px;
-            margin: 10px 0;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.8);
-            text-align: left;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
         }
 
         .mode-tabs {
             display: flex;
-            gap: 8px;
-            margin-bottom: 12px;
+            gap: 6px;
+            width: 260px;
         }
 
         .tab-btn {
             flex: 1;
-            padding: 14px;
-            font-size: 0.95rem;
+            padding: 6px;
+            font-size: 0.75rem;
             font-weight: 700;
             border: 1px solid var(--card-border);
-            border-radius: 10px;
+            border-radius: 6px;
             cursor: pointer;
             background: rgba(28, 28, 36, 0.95);
             color: var(--text-muted);
@@ -89,27 +90,54 @@
             background: var(--accent-blue);
             color: white;
             border-color: var(--accent-blue);
-            box-shadow: 0 0 12px rgba(0, 176, 255, 0.4);
+            box-shadow: 0 0 8px rgba(0, 176, 255, 0.4);
         }
 
-        .mode-content { display: none; }
-        .mode-content.active { display: block; }
+        /* Conteneur principal en mode Paysage : 2 Colonnes côte à côte */
+        .landscape-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            height: calc(100vh - 45px);
+            box-sizing: border-box;
+        }
 
+        .unified-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 10px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.8);
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .mode-content { display: none; height: 100%; }
+        .mode-content.active { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; height: 100%; }
+
+        /* Boutons compacts */
         button {
             background-color: var(--accent-green);
             color: #000;
             border: none;
-            padding: 14px;
-            font-size: 1rem;
-            border-radius: 10px;
+            padding: 8px 10px;
+            font-size: 0.85rem;
+            border-radius: 8px;
             cursor: pointer;
             width: 100%;
-            margin-top: 8px;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
             transition: transform 0.1s ease;
+            box-sizing: border-box;
         }
 
         button:active { transform: scale(0.98); }
@@ -124,7 +152,7 @@
         button.stop { 
             background-color: var(--accent-red); 
             color: white;
-            box-shadow: 0 0 15px rgba(255, 42, 42, 0.4);
+            box-shadow: 0 0 10px rgba(255, 42, 42, 0.4);
         }
 
         button.track-btn { background-color: #9c27b0; color: white; }
@@ -143,83 +171,87 @@
             background-color: rgba(15, 15, 20, 0.6); 
             border: 1px solid var(--accent-red);
             color: var(--accent-red);
-            margin-top: 10px;
-            font-size: 0.85rem;
-            padding: 10px;
+            font-size: 0.75rem;
+            padding: 6px;
+            margin-top: 4px;
         }
 
         .section-divider {
             border: 0;
             height: 1px;
             background: var(--card-border);
-            margin: 14px 0;
+            margin: 6px 0;
         }
 
+        /* Cartes dimensionnées pour tenir sans scroll */
         .map-container {
             position: relative;
             width: 100%;
-            margin-top: 8px;
+            flex-grow: 1;
+            min-height: 0;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
         }
         .map-view {
             width: 100%;
-            height: 220px;
-            border-radius: 10px;
+            height: 100%;
             background: #111;
-            border: 1px solid var(--card-border);
         }
         .center-btn {
             position: absolute;
-            bottom: 12px;
-            right: 12px;
+            bottom: 8px;
+            right: 8px;
             z-index: 1000;
             background: rgba(0, 176, 255, 0.9);
             color: white;
             border: none;
-            border-radius: 30px;
-            padding: 6px 12px;
-            font-size: 0.8rem;
+            border-radius: 20px;
+            padding: 4px 8px;
+            font-size: 0.7rem;
             font-weight: 700;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.5);
             cursor: pointer;
             width: auto;
             margin: 0;
             text-transform: none;
         }
 
+        /* Carrousel Pro Rallye compact (Mode Course) */
         .carousel-box {
             background: #0d0d11;
-            border-radius: 12px;
-            padding: 14px;
+            border-radius: 8px;
+            padding: 8px;
             text-align: center;
-            border: 2px solid var(--card-border);
-            margin-top: 8px;
+            border: 1px solid var(--card-border);
+            margin: 4px 0;
         }
         .note-prev {
-            font-size: 0.95rem;
+            font-size: 0.8rem;
             color: var(--text-muted);
-            margin: 2px 0;
+            margin: 1px 0;
             opacity: 0.6;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
         .note-active {
-            font-size: 1.6rem;
+            font-size: 1.25rem;
             color: var(--accent-yellow);
             font-weight: 900;
-            margin: 8px 0;
-            padding: 12px;
+            margin: 4px 0;
+            padding: 8px;
             background: #1c1c24;
-            border-radius: 8px;
-            border-left: 6px solid var(--accent-yellow);
+            border-radius: 6px;
+            border-left: 4px solid var(--accent-yellow);
             text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 0 15px rgba(255, 230, 0, 0.15);
+            letter-spacing: 0.5px;
+            box-shadow: 0 0 10px rgba(255, 230, 0, 0.15);
         }
         .note-next {
-            font-size: 1.05rem;
+            font-size: 0.85rem;
             color: #aaa;
-            margin: 2px 0;
+            margin: 1px 0;
             opacity: 0.8;
             white-space: nowrap;
             overflow: hidden;
@@ -229,28 +261,28 @@
         .stat-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-bottom: 10px;
+            gap: 6px;
+            margin-bottom: 4px;
         }
         .stat-box {
             background: #111116;
             border: 1px solid var(--card-border);
-            border-radius: 10px;
-            padding: 10px;
+            border-radius: 8px;
+            padding: 6px;
             text-align: center;
         }
-        .stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
-        .stat-value { font-size: 1.2rem; font-weight: 800; color: var(--text-main); margin-top: 2px; }
+        .stat-label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; }
+        .stat-value { font-size: 1rem; font-weight: 800; color: var(--text-main); margin-top: 1px; }
 
-        ul { padding-left: 18px; font-size: 0.85rem; color: #ccc; max-height: 100px; overflow-y: auto; margin: 4px 0 0 0; text-align: left; }
-        li { margin-bottom: 5px; }
+        ul { padding-left: 14px; font-size: 0.75rem; color: #ccc; max-height: 85px; overflow-y: auto; margin: 2px 0; text-align: left; }
+        li { margin-bottom: 3px; }
         
         .label-title {
-            font-size: 0.9rem;
+            font-size: 0.75rem;
             font-weight: 700;
             color: var(--text-main);
             text-align: left;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -258,82 +290,96 @@
 </head>
 <body>
 
-    <h1>⏱️ Copilote Rallye Pro</h1>
-    
-    <div class="mode-tabs">
-        <button id="tabRec" class="tab-btn active" onclick="switchMode('rec')">1. Reconnaissance</button>
-        <button id="tabRun" class="tab-btn" onclick="switchMode('run')">2. Course / Live</button>
-    </div>
+    <header>
+        <h1>⏱️ Copilote Pro</h1>
+        <div class="mode-tabs">
+            <button id="tabRec" class="tab-btn active" onclick="switchMode('rec')">Reco</button>
+            <button id="tabRun" class="tab-btn" onclick="switchMode('run')">Course</button>
+        </div>
+    </header>
 
     <!-- MODE RECONNAISSANCE -->
     <div id="contentRec" class="mode-content active">
+        <!-- Colonne Gauche : Commandes -->
         <div class="unified-card">
-            
-            <div class="label-title" style="color:#d1c4e9;">1. Enregistrement du Tracé</div>
-            <button id="btnTrack" class="track-btn" onclick="toggleTrackRecording()">🗺️ Démarrer l'enregistrement</button>
-            <div style="font-size:0.8rem; color:#d1c4e9; margin-top:4px; text-align:left;" id="trackStatus">Tracé inactif</div>
+            <div>
+                <div class="label-title" style="color:#d1c4e9;">1. Enregistrement Tracé</div>
+                <button id="btnTrack" class="track-btn" onclick="toggleTrackRecording()">🗺️ Démarrer</button>
+                <div style="font-size:0.7rem; color:#d1c4e9; margin-top:2px; text-align:left;" id="trackStatus">Inactif</div>
+            </div>
 
             <hr class="section-divider">
 
-            <div class="label-title" style="color:#ff8a80;">2. Dictée Vocale (Mains Libres)</div>
-            <button id="btnMic" class="mic" onclick="toggleNoteListening()">🔴 Activer l'écoute micro</button>
-            <div style="font-size:0.8rem; color:var(--accent-yellow); margin-top:4px; text-align:left;" id="dictationStatus">Micro en veille</div>
+            <div>
+                <div class="label-title" style="color:#ff8a80;">2. Dictée Vocale Notes</div>
+                <button id="btnMic" class="mic" onclick="toggleNoteListening()">🔴 Activer Micro</button>
+                <div style="font-size:0.7rem; color:var(--accent-yellow); margin-top:2px; text-align:left;" id="dictationStatus">En veille</div>
+            </div>
 
             <hr class="section-divider">
 
-            <div class="label-title">🗺️ Carte & Notes (<span id="countNotes">0</span>)</div>
+            <div>
+                <div class="label-title">Notes enregistrées (<span id="countNotes">0</span>)</div>
+                <ul id="notesListRec"></ul>
+            </div>
+
+            <button class="reset" onclick="resetEverything()">🗑️ Tout effacer</button>
+        </div>
+
+        <!-- Colonne Droite : Carte -->
+        <div class="unified-card" style="padding: 8px;">
+            <div class="label-title">🗺️ Carte de Reconnaissance</div>
             <div class="map-container">
-                <button class="center-btn" onclick="manualCenter('rec')">📍 Me centrer</button>
+                <button class="center-btn" onclick="manualCenter('rec')">📍 Centrer</button>
                 <div id="mapRec" class="map-view"></div>
             </div>
-            
-            <ul id="notesListRec"></ul>
-            
-            <button class="reset" onclick="resetEverything()">🗑️ Tout effacer (Tracé & Notes)</button>
         </div>
     </div>
 
     <!-- MODE ENTRAÎNEMENT / COURSE -->
     <div id="contentRun" class="mode-content">
+        <!-- Colonne Gauche : Cockpit Course -->
         <div class="unified-card">
-            
-            <button id="btnToggle" onclick="toggleSystem()" disabled>🏁 Démarrer la Course</button>
-            <button class="reset" onclick="resetRunProgress()" style="border-color: #ff9800; color: #ff9800; margin-top:8px;">🔄 Réinitialiser la course</button>
-
-            <hr class="section-divider">
+            <div>
+                <button id="btnToggle" onclick="toggleSystem()" disabled>🏁 Démarrer Course</button>
+                <button class="reset" onclick="resetRunProgress()" style="border-color: #ff9800; color: #ff9800;">🔄 Reset Course</button>
+            </div>
 
             <div class="stat-grid">
                 <div class="stat-box">
                     <div class="stat-label">Vitesse</div>
-                    <div class="stat-value"><span id="speed">0</span> <span style="font-size:0.75rem">km/h</span></div>
+                    <div class="stat-value"><span id="speed">0</span> <span style="font-size:0.6rem">km/h</span></div>
                 </div>
                 <div class="stat-box">
-                    <div class="stat-label">Distance Route</div>
-                    <div class="stat-value"><span id="distanceToNote">-</span> <span style="font-size:0.75rem">m</span></div>
+                    <div class="stat-label">Dist. Route</div>
+                    <div class="stat-value"><span id="distanceToNote">-</span> <span style="font-size:0.6rem">m</span></div>
                 </div>
             </div>
 
-            <div style="background:#111; padding:8px 12px; border-radius:8px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-size:0.8rem; color:var(--text-muted); text-transform:uppercase;">Statut</span>
-                <span id="runStatusText" style="font-size:0.9rem; font-weight:bold; color:var(--accent-red);">Rapprochez-vous (&lt; 15m)</span>
+            <div style="background:#111; padding:4px 8px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase;">Statut</span>
+                <span id="runStatusText" style="font-size:0.75rem; font-weight:bold; color:var(--accent-red);">Approchez (&lt;15m)</span>
             </div>
 
-            <div class="label-title">📋 Carrousel Copilote</div>
-            <div class="carousel-box">
-                <div id="notePrev" class="note-prev">-</div>
-                <div id="noteActive" class="note-active">En attente du départ</div>
-                <div id="noteNext" class="note-next">-</div>
+            <!-- Carrousel Visuel Pro Compact -->
+            <div>
+                <div class="label-title">📋 Carrousel</div>
+                <div class="carousel-box">
+                    <div id="notePrev" class="note-prev">-</div>
+                    <div id="noteActive" class="note-active">En attente</div>
+                    <div id="noteNext" class="note-next">-</div>
+                </div>
+                <div id="distance" style="font-size: 0.7rem; color: var(--text-muted); text-align: center;">-</div>
             </div>
-            <div id="distance" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px; text-align: center;">-</div>
+        </div>
 
-            <hr class="section-divider">
-
+        <!-- Colonne Droite : Carte Live -->
+        <div class="unified-card" style="padding: 8px;">
             <div class="label-title">🗺️ Suivi GPS Live</div>
             <div class="map-container">
-                <button class="center-btn" onclick="manualCenter('run')">📍 Me centrer</button>
+                <button class="center-btn" onclick="manualCenter('run')">📍 Centrer</button>
                 <div id="mapRun" class="map-view"></div>
             </div>
-
         </div>
     </div>
 
@@ -450,13 +496,11 @@
             }
         }
 
-        // --- FONCTION MAGIQUE : Calcule la distance le long de la trace (route) et non à vol d'oiseau ---
         function getDistanceAlongTrack(userLat, userLon, targetLat, targetLon) {
             if (!trackPath || trackPath.length === 0) {
                 return getDistanceFromLatLonInMeters(userLat, userLon, targetLat, targetLon);
             }
 
-            // 1. Trouver le point de la trace le plus proche de l'utilisateur
             let closestUserIndex = 0;
             let minUserDist = Infinity;
             for (let i = 0; i < trackPath.length; i++) {
@@ -467,7 +511,6 @@
                 }
             }
 
-            // 2. Trouver le point de la trace le plus proche de la note
             let closestNoteIndex = 0;
             let minNoteDist = Infinity;
             for (let i = 0; i < trackPath.length; i++) {
@@ -478,12 +521,10 @@
                 }
             }
 
-            // Si la note est passée derrière nous sur la route
             if (closestNoteIndex <= closestUserIndex) {
                 return 0; 
             }
 
-            // 3. Sommer la distance réelle le long des segments de la trace entre l'utilisateur et la note
             let totalDist = 0;
             for (let i = closestUserIndex; i < closestNoteIndex; i++) {
                 totalDist += getDistanceFromLatLonInMeters(
@@ -536,10 +577,9 @@
 
             const btnToggle = document.getElementById('btnToggle');
             const runStatusText = document.getElementById('runStatusText');
-            const distToStartEl = document.getElementById('distanceToStart');
+            const distToStartEl = document.getElementById('distanceToNote');
 
             if (trackPath.length > 0 && !isRaceStarted) {
-                // Pour le départ, on utilise la distance route vers le premier point du tracé
                 let startPoint = trackPath[0];
                 let distToStart = getDistanceAlongTrack(lastUserLat, lastUserLon, startPoint[0], startPoint[1]);
                 if (distToStartEl) distToStartEl.innerText = Math.round(distToStart);
@@ -547,20 +587,20 @@
                 if (distToStart <= 15) {
                     if (btnToggle) btnToggle.disabled = false;
                     if (runStatusText) {
-                        runStatusText.innerText = "✅ Sur la ligne de départ (Prêt)";
+                        runStatusText.innerText = "✅ Départ prêt";
                         runStatusText.style.color = "var(--accent-green)";
                     }
                 } else {
                     if (btnToggle) btnToggle.disabled = true;
                     if (runStatusText) {
-                        runStatusText.innerText = "❌ Trop loin du départ (> 15m)";
+                        runStatusText.innerText = "❌ Trop loin (>15m)";
                         runStatusText.style.color = "var(--accent-red)";
                     }
                 }
             } else if (trackPath.length === 0 && !isRaceStarted) {
                 if (distToStartEl) distToStartEl.innerText = "-";
                 if (runStatusText) {
-                    runStatusText.innerText = "Aucun tracé de reco trouvé";
+                    runStatusText.innerText = "Aucun tracé";
                     runStatusText.style.color = "var(--accent-red)";
                 }
             }
@@ -576,7 +616,7 @@
                 let noteNextEl = document.getElementById('noteNext');
 
                 if (notes.length === 0) {
-                    if (noteActiveEl) noteActiveEl.innerText = "Aucune note enregistrée !";
+                    if (noteActiveEl) noteActiveEl.innerText = "Aucune note !";
                     if (distanceEl) distanceEl.innerText = "";
                     return;
                 }
@@ -591,7 +631,7 @@
 
                 if (currentIndex === -1) {
                     if (notePrevEl) notePrevEl.innerText = notes.length > 0 ? "⬆️ " + notes[notes.length - 1].text : "-";
-                    if (noteActiveEl) noteActiveEl.innerText = "🏁 PARCOURS TERMINÉ !";
+                    if (noteActiveEl) noteActiveEl.innerText = "🏁 FIN !";
                     if (noteNextEl) noteNextEl.innerText = "-";
                     if (distanceEl) distanceEl.innerText = "";
                     if (distanceToNoteEl) distanceToNoteEl.innerText = "0";
@@ -599,12 +639,10 @@
                 }
 
                 let nextActiveNote = notes[currentIndex];
-                
-                // --- ICI : On utilise la distance le long de la route/trace ---
                 let dist = getDistanceAlongTrack(lastUserLat, lastUserLon, nextActiveNote.lat, nextActiveNote.lon);
                 
                 if (distanceToNoteEl) distanceToNoteEl.innerText = Math.round(dist);
-                if (distanceEl) distanceEl.innerText = "Distance route prochaine note : " + Math.round(dist) + " m (Seuil : " + Math.round(dynamicThreshold) + "m)";
+                if (distanceEl) distanceEl.innerText = "Prochaine note à " + Math.round(dist) + "m (Seuil: " + Math.round(dynamicThreshold) + "m)";
 
                 let prevText = (currentIndex > 0) ? "⬆️ " + notes[currentIndex - 1].text : "⬆️ [Départ]";
                 let activeText = "🎯 " + nextActiveNote.text;
@@ -630,25 +668,25 @@
 
             if (!isTrackingActive) {
                 if (lastUserLat === null) {
-                    alert("Attends que le GPS fixe ta position avant de lancer le tracé !");
+                    alert("Attends le signal GPS !");
                     return;
                 }
                 isTrackingActive = true;
-                btn.innerText = "⏹️ Arrêter l'enregistrement";
+                btn.innerText = "⏹️ Stop Tracé";
                 btn.className = "track-btn recording";
-                status.innerText = "🔴 Tracé en cours...";
+                status.innerText = "🔴 Enregistrement...";
             } else {
                 isTrackingActive = false;
-                btn.innerText = "🗺️ Démarrer l'enregistrement";
+                btn.innerText = "🗺️ Démarrer";
                 btn.className = "track-btn";
-                status.innerText = "✅ Tracé sauvegardé (" + trackPath.length + " pts)";
+                status.innerText = "✅ Sauvegardé (" + trackPath.length + ")";
             }
         }
 
         function toggleNoteListening() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
-                alert("La reconnaissance vocale n'est pas supportée par ton navigateur.");
+                alert("Reconnaissance vocale non supportée.");
                 return;
             }
 
@@ -657,7 +695,7 @@
 
             if (!isListeningActive) {
                 if (lastUserLat === null || lastUserLon === null) {
-                    alert("Attends que le GPS fixe ta position avant d'activer l'écoute !");
+                    alert("Attends le signal GPS !");
                     return;
                 }
 
@@ -671,9 +709,9 @@
 
                 recognition.onstart = function() {
                     isListeningActive = true;
-                    btnMic.innerText = "⏹️ Couper le micro";
+                    btnMic.innerText = "⏹️ Couper Micro";
                     btnMic.className = "mic recording";
-                    statusText.innerText = "🟢 Micro actif (Parle pour poser une note)";
+                    statusText.innerText = "🟢 Écoute active";
                 };
 
                 recognition.onsoundstart = function() {
@@ -702,14 +740,14 @@
                         updateNotesDisplay();
                         redrawTracksAndMarkers();
                         
-                        statusText.innerText = `✅ Ajouté : "${spokenText}"`;
+                        statusText.innerText = `✅ "${spokenText}"`;
                         if ('vibrate' in navigator) navigator.vibrate(100);
                     }
                 };
 
                 recognition.onerror = function(event) {
                     if (event.error !== 'no-speech') {
-                        statusText.innerText = "Info micro : " + event.error;
+                        statusText.innerText = "Erreur: " + event.error;
                     }
                 };
 
@@ -724,9 +762,9 @@
             } else {
                 isListeningActive = false;
                 if (recognition) recognition.stop();
-                btnMic.innerText = "🔴 Activer l'écoute micro";
+                btnMic.innerText = "🔴 Activer Micro";
                 btnMic.className = "mic";
-                statusText.innerText = "Micro en veille.";
+                statusText.innerText = "En veille";
             }
         }
 
@@ -736,7 +774,7 @@
                 if (trackPath.length > 0) {
                     polylineRec = L.polyline(trackPath, { color: '#00b0ff', weight: 4, opacity: 0.8 }).addTo(mapRec);
                     if (!startMarkerRec) {
-                        startMarkerRec = L.marker([trackPath[0][0], trackPath[0][1]]).addTo(mapRec).bindPopup("🏁 Ligne de Départ");
+                        startMarkerRec = L.marker([trackPath[0][0], trackPath[0][1]]).addTo(mapRec).bindPopup("🏁 Départ");
                     } else {
                         startMarkerRec.setLatLng(trackPath[0]);
                     }
@@ -754,7 +792,7 @@
                 if (trackPath.length > 0) {
                     polylineRun = L.polyline(trackPath, { color: '#00e676', weight: 4, opacity: 0.8 }).addTo(mapRun);
                     if (!startMarkerRun) {
-                        startMarkerRun = L.marker([trackPath[0][0], trackPath[0][1]]).addTo(mapRun).bindPopup("🏁 Ligne de Départ");
+                        startMarkerRun = L.marker([trackPath[0][0], trackPath[0][1]]).addTo(mapRun).bindPopup("🏁 Départ");
                     } else {
                         startMarkerRun.setLatLng(trackPath[0]);
                     }
@@ -769,7 +807,7 @@
         }
 
         function resetEverything() {
-            if (confirm("Veux-tu vraiment effacer tout le tracé et toutes les notes pour recommencer ?")) {
+            if (confirm("Effacer tout le tracé et les notes ?")) {
                 notes = [];
                 trackPath = [];
                 localStorage.removeItem('rally_notes');
@@ -787,14 +825,14 @@
                 isRaceStarted = false;
                 if (recognition) recognition.stop();
                 
-                document.getElementById('btnTrack').innerText = "🗺️ Démarrer l'enregistrement";
+                document.getElementById('btnTrack').innerText = "🗺️ Démarrer";
                 document.getElementById('btnTrack').className = "track-btn";
-                document.getElementById('trackStatus').innerText = "Tracé inactif";
-                document.getElementById('btnMic').innerText = "🔴 Activer l'écoute micro";
+                document.getElementById('trackStatus').innerText = "Inactif";
+                document.getElementById('btnMic').innerText = "🔴 Activer Micro";
                 document.getElementById('btnMic').className = "mic";
-                document.getElementById('dictationStatus').innerText = "Micro en veille";
+                document.getElementById('dictationStatus').innerText = "En veille";
                 
-                alert("Mémoire réinitialisée à zéro !");
+                alert("Réinitialisé !");
             }
         }
 
@@ -803,12 +841,12 @@
             const runStatusText = document.getElementById('runStatusText');
 
             if (!isRaceStarted) {
-                if (notes.length ===0) {
-                    alert("Aucune note enregistrée ! Fais d'abord ta reconnaissance.");
+                if (notes.length === 0) {
+                    alert("Aucune note enregistrée !");
                     return;
                 }
                 isRaceStarted = true;
-                btn.innerText = "Arrêter la Course";
+                btn.innerText = "Arrêter Course";
                 btn.className = "stop";
                 if (runStatusText) {
                     runStatusText.innerText = "🚀 EN COURSE !";
@@ -817,16 +855,14 @@
                 speak("Départ validé. C'est parti !");
             } else {
                 isRaceStarted = false;
-                btn.innerText = "🏁 Démarrer la Course";
+                btn.innerText = "🏁 Démarrer Course";
                 btn.className = "";
                 if (runStatusText) {
-                    runStatusText.innerText = "Course en pause";
+                    runStatusText.innerText = "En pause";
                     runStatusText.style.color = "var(--text-muted)";
                 }
                 let noteActiveEl = document.getElementById('noteActive');
                 if (noteActiveEl) noteActiveEl.innerText = "Course en pause";
-                let distanceEl = document.getElementById('distance');
-                if (distanceEl) distanceEl.innerText = "";
             }
         }
 
@@ -837,14 +873,14 @@
             
             const btnToggle = document.getElementById('btnToggle');
             if (btnToggle) {
-                btnToggle.innerText = "🏁 Démarrer la Course";
+                btnToggle.innerText = "🏁 Démarrer Course";
                 btnToggle.className = "";
                 btnToggle.disabled = true;
             }
 
             const runStatusText = document.getElementById('runStatusText');
             if (runStatusText) {
-                runStatusText.innerText = "Rapprochez-vous du départ (< 15m)";
+                runStatusText.innerText = "Approchez (<15m)";
                 runStatusText.style.color = "var(--accent-red)";
             }
 
@@ -854,11 +890,11 @@
             let distance = document.getElementById('distance');
 
             if (notePrev) notePrev.innerText = "-";
-            if (noteActive) noteActive.innerText = "Rejoins la ligne de départ";
+            if (noteActive) noteActive.innerText = "Rejoins le départ";
             if (noteNext) noteNext.innerText = "-";
             if (distance) distance.innerText = "";
 
-            speak("Notes réinitialisées. Retournez sur la ligne de départ.");
+            speak("Notes réinitialisées.");
         }
 
         function updateNotesDisplay() {
@@ -867,13 +903,13 @@
             list.innerHTML = "";
 
             if (notes.length === 0) {
-                list.innerHTML = "<li>Aucune note enregistrée pour l'instant.</li>";
+                list.innerHTML = "<li>Aucune note.</li>";
                 return;
             }
 
             notes.forEach((note, index) => {
                 let li = document.createElement('li');
-                li.innerHTML = `<b>#${index + 1}</b> : ${note.text} <button onclick="deleteNote(${index})" style="background:none; border:none; color:var(--accent-red); cursor:pointer; font-size:0.8rem; float:right; width:auto; padding:0; margin:0;">[Supprimer]</button>`;
+                li.innerHTML = `<b>#${index + 1}</b> : ${note.text} <button onclick="deleteNote(${index})" style="background:none; border:none; color:var(--accent-red); cursor:pointer; font-size:0.7rem; float:right; width:auto; padding:0; margin:0;">[Suppr]</button>`;
                 list.appendChild(li);
             });
         }
@@ -887,7 +923,7 @@
 
         function handleError(error) {
             let statusEl = document.getElementById('status');
-            if (statusEl) statusEl.innerText = "Erreur GPS : " + error.message;
+            if (statusEl) statusEl.innerText = "GPS Erreur : " + error.message;
         }
 
         function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
