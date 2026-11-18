@@ -40,7 +40,7 @@
             text-align: center;
             -webkit-user-select: none;
             user-select: none;
-            overflow: hidden; /* Zéro scroll sur l'écran */
+            overflow: hidden;
             height: 100vh;
             box-sizing: border-box;
             display: flex;
@@ -93,7 +93,6 @@
             box-shadow: 0 0 8px rgba(0, 176, 255, 0.4);
         }
 
-        /* Conteneur principal en mode Paysage : 2 Colonnes côte à côte */
         .landscape-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -122,7 +121,6 @@
         .mode-content { display: none; height: 100%; }
         .mode-content.active { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; height: 100%; }
 
-        /* Boutons compacts */
         button {
             background-color: var(--accent-green);
             color: #000;
@@ -183,7 +181,6 @@
             margin: 6px 0;
         }
 
-        /* Cartes dimensionnées pour tenir sans scroll */
         .map-container {
             position: relative;
             width: 100%;
@@ -217,7 +214,6 @@
             text-transform: none;
         }
 
-        /* Carrousel Pro Rallye compact (Mode Course) */
         .carousel-box {
             background: #0d0d11;
             border-radius: 8px;
@@ -300,7 +296,6 @@
 
     <!-- MODE RECONNAISSANCE -->
     <div id="contentRec" class="mode-content active">
-        <!-- Colonne Gauche : Commandes -->
         <div class="unified-card">
             <div>
                 <div class="label-title" style="color:#d1c4e9;">1. Enregistrement Tracé</div>
@@ -326,7 +321,6 @@
             <button class="reset" onclick="resetEverything()">🗑️ Tout effacer</button>
         </div>
 
-        <!-- Colonne Droite : Carte -->
         <div class="unified-card" style="padding: 8px;">
             <div class="label-title">🗺️ Carte de Reconnaissance</div>
             <div class="map-container">
@@ -338,7 +332,6 @@
 
     <!-- MODE ENTRAÎNEMENT / COURSE -->
     <div id="contentRun" class="mode-content">
-        <!-- Colonne Gauche : Cockpit Course -->
         <div class="unified-card">
             <div>
                 <button id="btnToggle" onclick="toggleSystem()" disabled>🏁 Démarrer Course</button>
@@ -351,8 +344,8 @@
                     <div class="stat-value"><span id="speed">0</span> <span style="font-size:0.6rem">km/h</span></div>
                 </div>
                 <div class="stat-box">
-                    <div class="stat-label">Dist. Route</div>
-                    <div class="stat-value"><span id="distanceToNote">-</span> <span style="font-size:0.6rem">m</span></div>
+                    <div class="stat-label">Dist. Actuelle → Suivante</div>
+                    <div class="stat-value"><span id="partialDistance">-</span> <span style="font-size:0.6rem">m</span></div>
                 </div>
             </div>
 
@@ -361,7 +354,6 @@
                 <span id="runStatusText" style="font-size:0.75rem; font-weight:bold; color:var(--accent-red);">Approchez (&lt;15m)</span>
             </div>
 
-            <!-- Carrousel Visuel Pro Compact -->
             <div>
                 <div class="label-title">📋 Carrousel</div>
                 <div class="carousel-box">
@@ -373,7 +365,6 @@
             </div>
         </div>
 
-        <!-- Colonne Droite : Carte Live -->
         <div class="unified-card" style="padding: 8px;">
             <div class="label-title">🗺️ Suivi GPS Live</div>
             <div class="map-container">
@@ -536,6 +527,32 @@
             return totalDist;
         }
 
+        function getPartialDistanceBetweenNotes(lat1, lon1, lat2, lon2) {
+            if (!trackPath || trackPath.length === 0) {
+                return getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2);
+            }
+
+            let closestIdx1 = 0, minD1 = Infinity;
+            for (let i = 0; i < trackPath.length; i++) {
+                let d = getDistanceFromLatLonInMeters(lat1, lon1, trackPath[i][0], trackPath[i][1]);
+                if (d < minD1) { minD1 = d; closestIdx1 = i; }
+            }
+
+            let closestIdx2 = 0, minD2 = Infinity;
+            for (let i = 0; i < trackPath.length; i++) {
+                let d = getDistanceFromLatLonInMeters(lat2, lon2, trackPath[i][0], trackPath[i][1]);
+                if (d < minD2) { minD2 = d; closestIdx2 = i; }
+            }
+
+            if (closestIdx2 <= closestIdx1) return 0;
+
+            let partialDist = 0;
+            for (let i = closestIdx1; i < closestIdx2; i++) {
+                partialDist += getDistanceFromLatLonInMeters(trackPath[i][0], trackPath[i][1], trackPath[i+1][0], trackPath[i+1][1]);
+            }
+            return partialDist;
+        }
+
         function updatePosition(position) {
             lastUserLat = position.coords.latitude;
             lastUserLon = position.coords.longitude;
@@ -577,12 +594,12 @@
 
             const btnToggle = document.getElementById('btnToggle');
             const runStatusText = document.getElementById('runStatusText');
-            const distToStartEl = document.getElementById('distanceToNote');
+            const partialDistEl = document.getElementById('partialDistance');
 
             if (trackPath.length > 0 && !isRaceStarted) {
                 let startPoint = trackPath[0];
                 let distToStart = getDistanceAlongTrack(lastUserLat, lastUserLon, startPoint[0], startPoint[1]);
-                if (distToStartEl) distToStartEl.innerText = Math.round(distToStart);
+                if (partialDistEl) partialDistEl.innerText = "-";
 
                 if (distToStart <= 15) {
                     if (btnToggle) btnToggle.disabled = false;
@@ -598,7 +615,7 @@
                     }
                 }
             } else if (trackPath.length === 0 && !isRaceStarted) {
-                if (distToStartEl) distToStartEl.innerText = "-";
+                if (partialDistEl) partialDistEl.innerText = "-";
                 if (runStatusText) {
                     runStatusText.innerText = "Aucun tracé";
                     runStatusText.style.color = "var(--accent-red)";
@@ -611,16 +628,17 @@
             if (isRaceStarted) {
                 let noteActiveEl = document.getElementById('noteActive');
                 let distanceEl = document.getElementById('distance');
-                let distanceToNoteEl = document.getElementById('distanceToNote');
                 let notePrevEl = document.getElementById('notePrev');
                 let noteNextEl = document.getElementById('noteNext');
 
                 if (notes.length === 0) {
                     if (noteActiveEl) noteActiveEl.innerText = "Aucune note !";
                     if (distanceEl) distanceEl.innerText = "";
+                    if (partialDistEl) partialDistEl.innerText = "-";
                     return;
                 }
 
+                // --- ORDRE STRICT : Trouve la PREMIÈRE note non jouée dans l'ordre d'enregistrement ---
                 let currentIndex = -1;
                 for (let i = 0; i < notes.length; i++) {
                     if (!notes[i].triggered) {
@@ -629,23 +647,44 @@
                     }
                 }
 
+                // --- SI TOUTES LES NOTES SONT JOUÉES : FIN DE SPECIALE AUTOMATIQUE ---
                 if (currentIndex === -1) {
                     if (notePrevEl) notePrevEl.innerText = notes.length > 0 ? "⬆️ " + notes[notes.length - 1].text : "-";
-                    if (noteActiveEl) noteActiveEl.innerText = "🏁 FIN !";
+                    if (noteActiveEl) noteActiveEl.innerText = "🏁 FIN DE SPECIALE !";
                     if (noteNextEl) noteNextEl.innerText = "-";
                     if (distanceEl) distanceEl.innerText = "";
-                    if (distanceToNoteEl) distanceToNoteEl.innerText = "0";
+                    if (partialDistEl) partialDistEl.innerText = "0";
+                    
+                    if (isRaceStarted) {
+                        speak("Fin de spéciale !");
+                        isRaceStarted = false;
+                        btnToggle.innerText = "🏁 Démarrer Course";
+                        btnToggle.className = "";
+                        if (runStatusText) {
+                            runStatusText.innerText = "🏁 Spéciale terminée";
+                            runStatusText.style.color = "var(--accent-green)";
+                        }
+                    }
                     return;
                 }
 
                 let nextActiveNote = notes[currentIndex];
-                let dist = getDistanceAlongTrack(lastUserLat, lastUserLon, nextActiveNote.lat, nextActiveNote.lon);
+                let distToActive = getDistanceAlongTrack(lastUserLat, lastUserLon, nextActiveNote.lat, nextActiveNote.lon);
                 
-                if (distanceToNoteEl) distanceToNoteEl.innerText = Math.round(dist);
-                if (distanceEl) distanceEl.innerText = "Prochaine note à " + Math.round(dist) + "m (Seuil: " + Math.round(dynamicThreshold) + "m)";
+                // Calcul de la distance partielle entre la note active et la suivante
+                let partialVal = 0;
+                if (currentIndex < notes.length - 1) {
+                    let followingNote = notes[currentIndex + 1];
+                    partialVal = getPartialDistanceBetweenNotes(nextActiveNote.lat, nextActiveNote.lon, followingNote.lat, followingNote.lon);
+                } else {
+                    partialVal = 0; 
+                }
+
+                if (partialDistEl) partialDistEl.innerText = Math.round(partialVal);
+                if (distanceEl) distanceEl.innerText = "Note #" + (currentIndex + 1) + " à " + Math.round(distToActive) + "m (Seuil: " + Math.round(dynamicThreshold) + "m)";
 
                 let prevText = (currentIndex > 0) ? "⬆️ " + notes[currentIndex - 1].text : "⬆️ [Départ]";
-                let activeText = "🎯 " + nextActiveNote.text;
+                let activeText = `🎯 [${currentIndex + 1}/${notes.length}] ` + nextActiveNote.text;
                 let nextText = (currentIndex < notes.length - 1) ? "⬇️ " + notes[currentIndex + 1].text : "⬇️ [Arrivée]";
 
                 if (notePrevEl) notePrevEl.innerText = prevText;
@@ -653,7 +692,8 @@
                 if (noteNextEl) noteNextEl.innerText = nextText;
 
                 let now = Date.now();
-                if (dist <= dynamicThreshold && (now - lastSpokenTime > 3000)) {
+                // Déclenchement de la note en cours de manière strictement séquentielle
+                if (distToActive <= dynamicThreshold && (now - lastSpokenTime > 3000)) {
                     speak(nextActiveNote.text);
                     nextActiveNote.triggered = true;
                     lastSpokenTime = now;
@@ -888,11 +928,13 @@
             let noteActive = document.getElementById('noteActive');
             let noteNext = document.getElementById('noteNext');
             let distance = document.getElementById('distance');
+            let partialDistEl = document.getElementById('partialDistance');
 
             if (notePrev) notePrev.innerText = "-";
             if (noteActive) noteActive.innerText = "Rejoins le départ";
             if (noteNext) noteNext.innerText = "-";
             if (distance) distance.innerText = "";
+            if (partialDistEl) partialDistEl.innerText = "-";
 
             speak("Notes réinitialisées.");
         }
