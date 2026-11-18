@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Copilote Rallye</title>
+    <title>Mon Copilote Rallye - Cockpit Carbone</title>
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
@@ -23,7 +23,6 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            /* Texture Fibre de Carbone en pur CSS */
             background-color: #111115;
             background-image: 
                 linear-gradient(27deg, #16161b 5px, transparent 5px),
@@ -54,7 +53,6 @@
             text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
         }
 
-        /* Carte unique et unifiée par mode avec effet verre fumé sur le carbone */
         .unified-card {
             background: var(--card-bg);
             backdrop-filter: blur(4px);
@@ -97,7 +95,6 @@
         .mode-content { display: none; }
         .mode-content.active { display: block; }
 
-        /* Boutons du cockpit */
         button {
             background-color: var(--accent-green);
             color: #000;
@@ -151,7 +148,6 @@
             padding: 10px;
         }
 
-        /* Séparateurs internes */
         .section-divider {
             border: 0;
             height: 1px;
@@ -159,7 +155,6 @@
             margin: 14px 0;
         }
 
-        /* Cartes */
         .map-container {
             position: relative;
             width: 100%;
@@ -191,7 +186,6 @@
             text-transform: none;
         }
 
-        /* Carrousel Pro Rallye (Mode Course) */
         .carousel-box {
             background: #0d0d11;
             border-radius: 12px;
@@ -266,7 +260,6 @@
 
     <h1>⏱️ Copilote Rallye Pro</h1>
     
-    <!-- Choix du Mode -->
     <div class="mode-tabs">
         <button id="tabRec" class="tab-btn active" onclick="switchMode('rec')">1. Reconnaissance</button>
         <button id="tabRun" class="tab-btn" onclick="switchMode('run')">2. Course / Live</button>
@@ -276,21 +269,18 @@
     <div id="contentRec" class="mode-content active">
         <div class="unified-card">
             
-            <!-- Contrôle du Tracé -->
             <div class="label-title" style="color:#d1c4e9;">1. Enregistrement du Tracé</div>
             <button id="btnTrack" class="track-btn" onclick="toggleTrackRecording()">🗺️ Démarrer l'enregistrement</button>
             <div style="font-size:0.8rem; color:#d1c4e9; margin-top:4px; text-align:left;" id="trackStatus">Tracé inactif</div>
 
             <hr class="section-divider">
 
-            <!-- Contrôle Micro -->
             <div class="label-title" style="color:#ff8a80;">2. Dictée Vocale (Mains Libres)</div>
             <button id="btnMic" class="mic" onclick="toggleNoteListening()">🔴 Activer l'écoute micro</button>
             <div style="font-size:0.8rem; color:var(--accent-yellow); margin-top:4px; text-align:left;" id="dictationStatus">Micro en veille</div>
 
             <hr class="section-divider">
 
-            <!-- Carte et Liste -->
             <div class="label-title">🗺️ Carte & Notes (<span id="countNotes">0</span>)</div>
             <div class="map-container">
                 <button class="center-btn" onclick="manualCenter('rec')">📍 Me centrer</button>
@@ -307,13 +297,11 @@
     <div id="contentRun" class="mode-content">
         <div class="unified-card">
             
-            <!-- Commandes de course -->
             <button id="btnToggle" onclick="toggleSystem()" disabled>🏁 Démarrer la Course</button>
             <button class="reset" onclick="resetRunProgress()" style="border-color: #ff9800; color: #ff9800; margin-top:8px;">🔄 Réinitialiser la course</button>
 
             <hr class="section-divider">
 
-            <!-- Infos Live -->
             <div class="stat-grid">
                 <div class="stat-box">
                     <div class="stat-label">Vitesse</div>
@@ -330,7 +318,6 @@
                 <span id="runStatusText" style="font-size:0.9rem; font-weight:bold; color:var(--accent-red);">Rapprochez-vous (&lt; 15m)</span>
             </div>
 
-            <!-- Carrousel Visuel Pro -->
             <div class="label-title">📋 Carrousel Copilote</div>
             <div class="carousel-box">
                 <div id="notePrev" class="note-prev">-</div>
@@ -341,7 +328,6 @@
 
             <hr class="section-divider">
 
-            <!-- Carte Course -->
             <div class="label-title">🗺️ Suivi GPS Live</div>
             <div class="map-container">
                 <button class="center-btn" onclick="manualCenter('run')">📍 Me centrer</button>
@@ -391,7 +377,7 @@
                 mapRec.on('movestart', () => {
                     autoCenterRec = false;
                     clearTimeout(timerRec);
-                    timerRec = setTimeout(() => { autoCenterRec = true; }, 10000);
+                    timerRec = setTimeout(() => { autoCenterRec = true; }, 5000); // 5 secondes de pause
                 });
             }
 
@@ -402,7 +388,7 @@
                 mapRun.on('movestart', () => {
                     autoCenterRun = false;
                     clearTimeout(timerRun);
-                    timerRun = setTimeout(() => { autoCenterRun = true; }, 10000);
+                    timerRun = setTimeout(() => { autoCenterRun = true; }, 5000); // 5 secondes de pause
                 });
             }
 
@@ -871,17 +857,4 @@
                 utterance.rate = 1.2;
                 utterance.pitch = 0.95;
 
-                if (voices.length === 0) { loadVoices(); }
-                let naturalVoice = voices.find(v => v.lang.includes('fr') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Siri') || v.name.includes('Amelie')));
-                if (naturalVoice) utterance.voice = naturalVoice;
-
-                window.speechSynthesis.speak(utterance);
-            }
-        }
-
-        window.onload = function() {
-            initMaps();
-        };
-    </script>
-</body>
-</html>
+                if (voices.length === 0) { loadVoices();
